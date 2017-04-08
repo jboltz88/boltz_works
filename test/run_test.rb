@@ -15,11 +15,7 @@ class CallTest < Test::Unit::TestCase
   end
 
   def test_call
-    # authorize "bryan", "secret"
-    # get "/"
-    # #follow_redirect!
-    #
-    # assert_equal "http://example.org/redirected", last_request.url
+    get "/"    
     assert last_response.ok?
   end
 
