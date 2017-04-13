@@ -7,7 +7,12 @@ require "boltz_works/controller"
 module BoltzWorks
   class Application
     def call(env)
-      [200, {'Content-Type' => 'text/html'}, ["Hello!"]]
+      if fav_icon(env).nil?
+        controller_and_action(env)
+      else
+        fav_icon(env)
+      end
+      #[200, {'Content-Type' => 'text/html'}, ["Hello!"]]
     end
   end
 end
