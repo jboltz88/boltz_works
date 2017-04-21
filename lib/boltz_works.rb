@@ -7,18 +7,13 @@ require "boltz_works/controller"
 module BoltzWorks
   class Application
     def call(env)
-      # if fav_icon(env).nil?
-      #   controller_and_action(env)
-      # else
-      #   fav_icon(env)
-      # end
-
-      if controller.has_response?
-        status, header, response = controller.get_response
-        [status, header, [response.body].flatten]
-      else
-        [200, {'Content-Type' => 'text/html'}, [text]]
+      if env['PATH_INFO'] == '/favicon.ico'
+        return [404, {'Content-Type' => 'text/html'}, []]
       end
+
+      rack_app = get_rack_app(env)
+      puts "in boltz_works.rb, rack_app: #{rack_app}"
+      rack_app.call(env)
     end
   end
 end
