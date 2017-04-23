@@ -12,7 +12,6 @@ module BoltzWorks
       end
 
       rack_app = get_rack_app(env)
-      puts "in boltz_works.rb, rack_app: #{rack_app}"
       rack_app.call(env)
     end
   end

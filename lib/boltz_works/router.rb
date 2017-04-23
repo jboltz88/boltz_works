@@ -24,9 +24,7 @@ module BoltzWorks
       if @router.nil?
         raise "No routes defined"
       end
-      puts "in get_rack_app, env[PATH_INFO]: #{env["PATH_INFO"]}"
       app = @router.look_up_url(env["PATH_INFO"], env["REQUEST_METHOD"])
-      puts "app: #{app}"
       app
     end
   end
@@ -38,6 +36,16 @@ module BoltzWorks
 
     # builds route/action rules and add them to @rules
     def map(url, *args)
+      options, destination = map_args_result(*args)
+      vars, regex = map_url_result(url)
+
+      @rules.push({ regex: Regexp.new("^/#{regex}$"),
+                    vars: vars, destination: destination,
+                    options: options })
+    end
+
+    # puts together options and destination for route map
+    def map_args_result(*args)
       options = {}
       options = args.pop if args[-1].is_a?(Hash)
       options[:default] ||= {}
@@ -46,12 +54,15 @@ module BoltzWorks
       destination = args.pop if args.size > 0
       raise "Too many args!" if args.size > 0
 
+      return options, destination
+    end
+
+    # puts together vars and regex for route map
+    def map_url_result(url)
       parts = url.split("/")
       parts.reject! { |part| part.empty? }
 
       vars, regex_parts = [], []
-
-      # builds regex which will be passed to look_up_url via @rules
       parts.each do |part|
         case part[0]
         when ":"
@@ -66,9 +77,7 @@ module BoltzWorks
       end
 
       regex = regex_parts.join("/")
-      @rules.push({ regex: Regexp.new("^/#{regex}$"),
-                    vars: vars, destination: destination,
-                    options: options })
+      return vars, regex
     end
 
     def look_up_url(url, request)
@@ -78,28 +87,31 @@ module BoltzWorks
         end
 
         if rule_match
-          options = rule[:options]
-          params = options[:default].dup
-
-          rule[:vars].each_with_index do |var, index|
-            params[var] = rule_match.captures[index]
-          end
-
-          if rule[:destination]
-            return get_destination(rule[:destination], params)
-          else
-            controller = params["controller"]
-            action = params["action"]
-            return get_destination("#{controller}##{action}", params)
-          end
+          return set_variables(rule, rule_match)
         end
       end
 
       proc { |env| [404, { "Content-Type" => "text/html" }, ["Not Found"]] }
     end
 
+    def set_variables(rule, rule_match)
+      options = rule[:options]
+      params = options[:default].dup
+
+      rule[:vars].each_with_index do |var, index|
+        params[var] = rule_match.captures[index]
+      end
+
+      if rule[:destination]
+        return get_destination(rule[:destination], params)
+      else
+        controller = params["controller"]
+        action = params["action"]
+        return get_destination("#{controller}##{action}", params)
+      end
+    end
+
     def get_destination(destination, routing_params = {})
-      puts "in get_destination, destination: #{destination}, routing_params: #{routing_params}"
       if destination.respond_to?(:call)
         return destination
       end
